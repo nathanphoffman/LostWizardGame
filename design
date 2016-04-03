@@ -1,0 +1,15 @@
+
+
+x Potions and Items:
+  Potions are short-term consumables that wear off over time
+    -Jump higher
+    -Run faster
+    -(Run slower but )
+
+
+x Tile Types
+    -Brittle (the tile crumbles underneath you and regenerates some time later)
+    -Normal (grass,stone,etc.) no ill effects
+    -Slippery (you keep moving, you can accelerate down slopes)
+    -Difficult (you move slowly)
+    -Deadly (you die)

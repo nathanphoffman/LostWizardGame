@@ -1,4 +1,4 @@
-var game = require('./../game.js');
+var game = require('./../../game.js');
 
 module.exports = {
   initialize: function(events){

@@ -14,5 +14,8 @@
     "gulp-webserver": "^0.9.1",
     "phaser": "^2.4.6",
     "webpack": "^1.12.14"
+  },
+  "dependencies": {
+    "jquery": "^2.2.2"
   }
 }

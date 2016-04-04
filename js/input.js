@@ -1,8 +1,8 @@
 var game = require('./game.js');
 var player = require('./player.js');
-var keyboard = require('./input/keyboard.js');
+var keyboard = require('./input/devices/keyboard.js');
 
-var base = {
+module.exports = {
 
   events: {
     isRightDown: null,
@@ -19,13 +19,12 @@ var base = {
   update: function(){
     //console.log(events.jump.pressed);
 
-    if(base.events.isRightDown()) player.ref.body.velocity.x = 300;
-    else if(base.events.isLeftDown()) player.ref.body.velocity.x = -300;
+    if(this.events.isRightDown()) player.ref.body.velocity.x = 300;
+    else if(this.events.isLeftDown()) player.ref.body.velocity.x = -300;
 
-    if(base.events.isJumpDown() && (player.ref.body.onFloor() || player.ref.body.touching.down))
+    if(this.events.isJumpDown() && (player.ref.body.onFloor() || player.ref.body.touching.down))
       player.ref.body.velocity.y = -300;
 
   }
 
 };
-module.exports = base;

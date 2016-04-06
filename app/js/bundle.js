@@ -97750,15 +97750,16 @@
 	
 	    $.ajax({ url: "/assets/map.json"})
 	    .done(function( data ) {
+	      console.log(data);
 	      map.map = data;
 	      this.initializePhaser();
 	    }.bind(this));
 	  },
 	
 	  initializePhaser: function(){
-	    var input = __webpack_require__(8);
-	    var player = __webpack_require__(9);
-	    var world = __webpack_require__(10);
+	    var input = __webpack_require__(9);
+	    var player = __webpack_require__(10);
+	    var world = __webpack_require__(12);
 	
 	    this.ref = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser', {
 	      preload: function(){
@@ -107635,31 +107636,109 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var game = __webpack_require__(5);
+	var arrays = __webpack_require__(8);
 	
 	module.exports = {
 	
 	  map: null,
+	  platforms: null,
 	
 	  preload: function(){
-	    console.log(this.map);
+	    this.map.layers.forEach(function(layer){
+	      layer.name + '.png';
+	      console.log(layer.name);
+	      game.ref.load.spritesheet(layer.name, 'assets/tilesets/' +
+	        layer.name + '.png',32,32);
+	    });
+	
+	    game.ref.load.image('platform', 'assets/tilesets/platform.png');
+	
 	  },
 	
 	  create: function(){
-	    console.log(this.map);
+	
 	    game.ref.world.setBounds(0, 0,
 	      this.map.width*this.map.tilewidth,
 	      this.map.height*this.map.tileheight);
+	
+	    this.renderPlatforms();
+	  },
+	
+	  renderPlatforms: function(){
+	    var platforms = game.ref.add.physicsGroup();
+	    var mapArray = this.getMapLayer('platforms');
+	
+	    arrays.useArrayPattern(mapArray,function(pattern){
+	
+	      var loops = (pattern.end - pattern.start) + 1;
+	
+	      for(var i = 0; i < loops; i++){
+	
+	        platforms.create(
+	          32*(i+pattern.start),
+	          32*pattern.row,
+	          'platforms',pattern.num-1);
+	
+	      }
+	    });
+	
+	    platforms.setAll('body.immovable', true);
+	    this.platforms = platforms;
+	  },
+	
+	  getMapLayer: function(layerName){
+	    var index = 0;
+	    var mapArray = [];
+	    this.map.layers.forEach(function(layer){
+	      while(index < layer.height)
+	      {
+	        if(layer.name == layerName) mapArray.push(layer.data.slice(index*layer.width,++index*layer.width));
+	      }
+	    });
+	    return mapArray;
 	  }
+	
 	
 	};
 
 
 /***/ },
 /* 8 */
+/***/ function(module, exports) {
+
+	module.exports = {
+	
+	  // this takes in a multidimensional array and returns an array of objects...
+	  // ...that describe the occurences of the elements within the array grouped into blocks
+	  // ...this is used by our map to draw collision boundries and trigger other events
+	  useArrayPattern: function(jaggedArray,fn){
+	    // We will put all non 0 values into an array of objects with their values and locations
+	    jaggedArray.forEach(function(innerArray,outerIndex){
+	      innerArray.reduce((result,num,index,arr)=>{
+	        var notLast = index !== innerArray.length-1;
+	        if(result.num === num && notLast) return result;
+	        else
+	        {
+	          if(result.num !== 0) fn({
+	            row: outerIndex,
+	            num: result.num,
+	            start: result.start,
+	            end: notLast ? index-1 : index
+	          });
+	          return{ num: num, start: index };
+	        }
+	      },{num: innerArray[0], start: 0 });
+	    });
+	  }
+	}
+
+
+/***/ },
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var game = __webpack_require__(5);
-	var player = __webpack_require__(9);
+	var player = __webpack_require__(10);
 	var keyboard = __webpack_require__(11);
 	
 	module.exports = {
@@ -107691,10 +107770,10 @@
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var world = __webpack_require__(10);
+	var map = __webpack_require__(7);
 	var game = __webpack_require__(5);
 	
 	module.exports = {
@@ -107707,7 +107786,7 @@
 	
 	  update: function(){
 	    this.ref.body.velocity.x = 0;
-	    game.ref.physics.arcade.collide(this.ref, world.platforms);
+	    game.ref.physics.arcade.collide(this.ref, map.platforms);
 	  },
 	
 	  create: function(){
@@ -107725,42 +107804,6 @@
 	    this.ref = player;
 	  }
 	};
-
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var game = __webpack_require__(5);
-	var map = __webpack_require__(7);
-	
-	module.exports = {
-	
-	  preload: function(){
-	    map.preload();
-	    //load sounds here
-	    game.ref.stage.backgroundColor = '#85b5e1';
-	    game.ref.load.image('platform', 'assets/tilesets/platform.png');
-	  },
-	
-	  create: function(){
-	    map.create();
-	    //play spounds here
-	    var platforms = game.ref.add.physicsGroup();
-	    platforms.create(500, 150, 'platform');
-	    platforms.create(-200, 300, 'platform');
-	    platforms.create(400, 450, 'platform');
-	    platforms.setAll('body.immovable', true);
-	    this.platforms = platforms;
-	
-	    game.ref.world.setBounds(0, 0, 1920, 1920);
-	
-	  },
-	
-	  update: function(){
-	
-	  }
-	}
 
 
 /***/ },
@@ -107805,6 +107848,33 @@
 	    }
 	  }
 	};
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var game = __webpack_require__(5);
+	var map = __webpack_require__(7);
+	
+	module.exports = {
+	
+	  preload: function(){
+	    map.preload();
+	    //load sounds here
+	
+	  },
+	
+	  create: function(){
+	    game.ref.stage.backgroundColor = '#85b5e1';
+	    map.create();
+	    //play spounds here
+	  },
+	
+	  update: function(){
+	
+	  }
+	}
 
 
 /***/ }

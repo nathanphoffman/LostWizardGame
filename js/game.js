@@ -8,6 +8,7 @@ module.exports = {
 
     $.ajax({ url: "/assets/map.json"})
     .done(function( data ) {
+      console.log(data);
       map.map = data;
       this.initializePhaser();
     }.bind(this));

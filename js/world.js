@@ -13,7 +13,6 @@ module.exports = {
     game.ref.stage.backgroundColor = '#85b5e1';
     map.create();
     //play spounds here
-
   },
 
   update: function(){

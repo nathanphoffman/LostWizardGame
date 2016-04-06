@@ -1,4 +1,4 @@
-var world = require('./world.js');
+var map = require('./world/map.js');
 var game = require('./game.js');
 
 module.exports = {
@@ -11,7 +11,7 @@ module.exports = {
 
   update: function(){
     this.ref.body.velocity.x = 0;
-    game.ref.physics.arcade.collide(this.ref, world.platforms);
+    game.ref.physics.arcade.collide(this.ref, map.platforms);
   },
 
   create: function(){

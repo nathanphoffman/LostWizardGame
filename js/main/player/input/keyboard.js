@@ -1,7 +1,6 @@
-var game = require('./../../game.js');
 
 module.exports = {
-  initialize: function(events){
+  initialize: function(events,game){
 
     //w, space, up-arrow
     var jumpKeys = getKeys([87,32,38]);
@@ -20,7 +19,7 @@ module.exports = {
     function getKeys(keyCodes){
       var arr = [];
       keyCodes.forEach(function(keyCode){
-        arr.push(game.ref.input.keyboard.addKey(keyCode));
+        arr.push(game.input.keyboard.addKey(keyCode));
       });
       return arr;
     }

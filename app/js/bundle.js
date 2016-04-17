@@ -45,11 +45,15 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {// All we need to do is require game, it will load the rest for us
+	"use strict";
 	global.PIXI = __webpack_require__(1);
 	global.p2 = __webpack_require__(2);
 	global.Phaser = __webpack_require__(3);
 	
-	var game = __webpack_require__(5);
+	// this starts the background music:
+	__webpack_require__(5)();
+	
+	var game = __webpack_require__(6);
 	game._initialize();
 	
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
@@ -97738,25 +97742,69 @@
 
 /***/ },
 /* 5 */
+/***/ function(module, exports) {
+
+	module.exports = function() {
+	    var music = [
+	      {audio: new Audio('./assets/music/battletheme.mp3'), length: 70},
+	      {audio: new Audio('./assets/music/maintheme1.mp3'), length: 92},
+	      {audio: new Audio('./assets/music/maintheme2.mp3'), length: 192}
+	    ];
+	
+	    (function(){
+	      var randomPick = Math.ceil(Math.random()*3)-1;
+	      play(music[randomPick]);
+	    })();
+	
+	    function play(song)
+	    {
+	      if(song.audio.currentTime) song.audio.currentTime = 0;
+	      song.audio.play();
+	
+	      // Randomly begin cutting off between 5+1 and 5+10 seconds:
+	      var cutOff = song.length - 6;
+	      setTimeout(function(){
+	        dimAudio(song);
+	      },cutOff*1000)
+	    }
+	
+	  function dimAudio(song){
+	    setTimeout(function(){
+	      song.audio.volume = song.audio.volume - .1;
+	      if(song.audio.volume > 0.2) dimAudio(song);
+	      else {
+	        song.audio.pause();
+	        beginMusic();
+	       }
+	    },500);
+	  }
+	};
+
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
 	
 	  _initialize: function(mapData){
 	
-	    var main = { game: null, state: __webpack_require__(6),
+	    var main = { game: null, state: __webpack_require__(7),
 	      refs: {
 	        map: {},
 	        player: {}
 	      }
 	    };
 	
-	    var events = __webpack_require__(7);
+	    var events = __webpack_require__(8);
 	    var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser', {
 	      preload: function(){
 	        main.game = game;
-	        __webpack_require__(8)(events);
-	        __webpack_require__(15)(events);
+	        // this is the only spritesheet we use for the entire game:
+	        game.load.spritesheet('spritesheet', 'assets/tilesets/spritesheet.png',32,32);
+	
+	        __webpack_require__(9)(events);
+	        __webpack_require__(18)(events);
 	
 	        events.runEvent('preload',main);
 	      },
@@ -97768,18 +97816,41 @@
 	        events.runEvent('update',main);
 	      }
 	    });
+	
+	    game.scale.pageAlignHorizontally = true;
+	    game.scale.pageAlignVertically = true;
+	    game.scale.refresh();
+	
 	  }
 	};
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
+	
+	// these are initial values for state
+	module.exports = {
+	  player: {
+	    inventory: [],
+	    stats: {
+	      health: 100,
+	      armor: 0,
+	      attack: 0
+	    },
+	    movement: {
+	      speed: 100,
+	      jump: 100
+	    }
+	  },
+	  level: 1,
+	
+	};
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -97789,57 +97860,58 @@
 	  runEvent: function(event,main)
 	  {
 	    // We run through every function which was registered for the event (preload,update,etc)
-	    // and then we pass in the world object, setting it if there were any changes made to it
+	    // and then we pass in the main game object, setting it if there were any changes made to it
 	    // (if the function returned a new world object)
 	    if(this.events[event] !== undefined) this.events[event].map(
-	      function(fn){ fn(main);});
+	      function(obj){ if(obj.enabled) obj.fn(main,obj.guid);});
 	  },
 	
 	  registerEvent: function(event,fn){
+	    var guid = this.guid();
 	    if(this.events[event] === undefined) this.events[event] = [];
-	    this.events[event].push(fn);
+	    this.events[event].push({fn:fn, guid:guid, enabled:true});
+	    return guid;
 	  },
 	
-	  preload: function(fn){ this.registerEvent('preload',fn); },
-	  create: function(fn){ this.registerEvent('create',fn); },
-	  update: function(fn){ this.registerEvent('update',fn); }
+	  preload: function(fn){ return this.registerEvent('preload',fn); },
+	  create: function(fn){ return this.registerEvent('create',fn); },
+	  update: function(fn){ return this.registerEvent('update',fn); },
 	
-	};
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
+	  useEvent: function(event,guid,fn){
+	    this.events[event].some(function(obj,index){
+	      if(obj.guid && obj.guid == guid)
+	      {
+	        return fn(this.events[event],index);
+	      }
+	    }.bind(this));
+	  },
 	
+	  stop: function(event,guid){
+	    this.useEvent(event,guid,function(matchedEvent,index){
+	    matchedEvent.splice(index,1);
+	    return true;
+	  })},
 	
-	module.exports = function(events){
+	  disable: function(event,guid){
+	    this.useEvent(event,guid,function(matchedEvent,index){
+	    matchedEvent[index].enabled = false;
+	    return true;
+	  })},
 	
-	  var map = __webpack_require__(9)();
+	  enable: function(event,guid){
+	    this.useEvent(event,guid,function(matchedEvent,index){
+	    matchedEvent[index].enabled = true;
+	    return true;
+	  })},
 	
-	  events.preload(preload);
-	  events.create(create);
-	
-	  // We load all of the tilesets by name in the tiled export
-	  function preload(main){
-	    var game = main.game;
-	    map.layers.forEach(function(layer){
-	      layer.name + '.png';
-	      game.load.spritesheet(layer.name, 'assets/tilesets/' +
-	        layer.name + '.png',32,32);
-	    });
-	  }
-	
-	   function create(main){
-	     var game = main.game;
-	
-	     // This makes it so our player can't venture off infinitely beyond our map size
-	     game.world.setBounds(0, 0,
-	     map.width*map.tilewidth,
-	     map.height*map.tileheight);
-	
-	     // This renders all of the sprites and determines what type of logic/physics for each one
-	      __webpack_require__(11)(main,map);
+	  guid: function() {
+	    function s4() {
+	      return Math.floor((1 + Math.random()) * 0x10000)
+	        .toString(16)
+	        .substring(1);
+	    }
+	    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+	      s4() + '-' + s4() + s4() + s4();
 	  }
 	};
 
@@ -97848,11 +97920,39 @@
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
+	
+	
+	module.exports = function(events){
+	
+	  var map = __webpack_require__(10)();
+	  events.create(createWorld);
+	
+	  // This renders all of the sprites and determines what type of logic/physics for each one
+	  __webpack_require__(12)(map,events);
+	
+	   function createWorld(main){
+	
+	     var game = main.game;
+	
+	     // This makes it so our player can't venture off infinitely beyond our map size
+	     game.world.setBounds(0, 0,
+	     map.width*map.tilewidth,
+	     map.height*map.tileheight);
+	
+	
+	  }
+	};
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
 	module.exports = function(){
 	
 	  var map = null;
 	
-	  var $ = __webpack_require__(10);
+	  var $ = __webpack_require__(11);
 	  $.ajax({ url: "/assets/map.json", async: false})
 	    .done(function( data ) {
 	      map = data;
@@ -97864,7 +97964,7 @@
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -107712,30 +107812,28 @@
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = function(main,map){
+	module.exports = function(map,events){
 	
 	 (function(){
-	      var layerTypes = {
-	        'platforms': __webpack_require__(12),
-	        'doodads': __webpack_require__(13),
-	        'items': __webpack_require__(14)
-	      };
 	
-	      // Now for every layer type we execute the respective function
-	      // All types get executed in 3 phases to initialization/finalizing
-	      // ...to take place before and after render
+	      // This figures out how to render the sprites
+	      var renderer = __webpack_require__(13);
+	
+	      // Now for every layer type we execute our render function
 	      var layers = getMapLayers();
+	      renderer.begin(events);
+	
 	      Object.keys(layers).forEach(function(key){
-	
-	          layerTypes[key].begin(main);
 	          useArrayPattern(layers[key],function(pattern){
-	            layerTypes[key].render(pattern);
-	          }); layerTypes[key].complete(main);
-	
+	            // the key here is passed for the spritesheet name
+	            renderer.render(pattern,events);
+	          });
 	      });
+	
+	      renderer.complete(events);
 	  })();
 	
 	      // This turns a single long array into sliced rows based on the map width
@@ -107761,69 +107859,80 @@
 	    function useArrayPattern(jaggedArray,fn){
 	      // We will put all non 0 values into an array of objects with their values and locations
 	      jaggedArray.forEach(function(innerArray,outerIndex){
+	        //if(result !== undefined) result.num = 0;
 	        innerArray.reduce((result,num,index,arr)=>{
 	          var notLast = index !== innerArray.length-1;
-	          if(result.num === num && notLast) return result;
+	          if(result.num === num && notLast)
+	          {
+	            return result;
+	          }
 	          else
 	          {
-	            if(result.num !== 0) fn({
-	              row: outerIndex,
-	              num: result.num,
-	              start: result.start,
-	              end: notLast ? index-1 : index
-	            });
+	            if(result.num !== 0)
+	            {
+	              fn({
+	                row: outerIndex,
+	                num: result.num,
+	                start: result.start,
+	                end: notLast ? index-1 : index
+	              });
+	            }
 	            return{ num: num, start: index };
 	          }
-	        },{num: innerArray[0], start: 0 });
+	        },{num: 0, start: 0 });
 	      });
 	    }
 	};
 
 
 /***/ },
-/* 12 */
-/***/ function(module, exports) {
-
-	module.exports = {
-	
-	  platforms: null,
-	
-	  begin: function(main){
-	    this.platforms = main.game.add.physicsGroup();
-	  },
-	
-	  render: function(pattern){
-	    var loops = (pattern.end - pattern.start) + 1;
-	
-	    for(var i = 0; i < loops; i++){
-	      this.platforms.create(
-	        32*(i+pattern.start),
-	        32*pattern.row,
-	        'platforms',pattern.num-1);
-	    }
-	  },
-	
-	  complete: function(main){
-	    this.platforms.setAll('body.immovable', true);
-	    main.refs.map.platforms = this.platforms;
-	  }
-	};
-
-
-/***/ },
 /* 13 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
-	  begin: function(){
+	  layerTypes: [
+	    {
+	      typeObj: __webpack_require__(14),
+	      start: 1,
+	      end: 16,
+	      type: 'platforms'
+	    },
+	    {
+	      typeObj: __webpack_require__(15),
+	      start: 17,
+	      end: 40,
+	      type: 'items'
+	    },
+	    {
+	      typeObj: __webpack_require__(17),
+	      start: 41,
+	      end: 48,
+	      type: 'characters'
+	    }
+	  ],
 	
+	  begin: function(events){
+	    this.layerTypes.forEach(function(layerType){
+	      layerType.typeObj.begin && layerType.typeObj.begin(events);
+	    });
 	  },
-	  render: function(){
 	
+	  render: function(pattern,events){
+	    this.layerTypes.some(function(layerType){
+	      if(pattern.num >= layerType.start && pattern.num <= layerType.end)
+	      {
+	        layerType.typeObj.render && layerType.typeObj.render(pattern,events);
+	        return true;
+	      }
+	    });
 	  },
-	  complete: function(){
 	
+	  complete: function(events){
+	    this.layerTypes.forEach(function(layerType){
+	      layerType.typeObj.complete && layerType.typeObj.complete(events);
+	    });
 	  }
+	
 	};
 
 
@@ -107832,11 +107941,130 @@
 /***/ function(module, exports) {
 
 	module.exports = {
+	
+	  platforms: null,
+	
+	  begin: function(events){
+	    events.create(function(main){
+	      this.platforms = main.game.add.physicsGroup();
+	    }.bind(this));
+	  },
+	
+	  render: function(pattern,events){
+	    events.create(function(main){
+	      var loops = (pattern.end - pattern.start) + 1;
+	
+	      for(var i = 0; i < loops; i++){
+	        this.platforms.create(
+	          32*(i+pattern.start),
+	          32*pattern.row,
+	          'spritesheet',pattern.num-1);
+	      }
+	    }.bind(this));
+	  },
+	
+	  complete: function(events){
+	    events.create(function(main){
+	      this.platforms.setAll('body.immovable', true);
+	      main.refs.map.platforms = this.platforms;
+	    }.bind(this));
+	  }
+	};
+
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = {
+	
+	  items: null,
+	
+	  begin: function(events){
+	    events.create(function(main){
+	      this.items = main.game.add.physicsGroup();
+	    }.bind(this));
+	  },
+	
+	  render: function(pattern,events){
+	    events.create(function(main){
+	      var loops = (pattern.end - pattern.start) + 1;
+	
+	      for(var i = 0; i < loops; i++){
+	        var item = this.items.create(
+	          32*(i+pattern.start),
+	          32*pattern.row,
+	          'spritesheet',pattern.num-1);
+	
+	          // setup item logic for this item
+	          __webpack_require__(16)(item,events,pattern.num);
+	      }
+	
+	    }.bind(this));
+	  },
+	
+	  complete: function(events){
+	    events.create(function(main){
+	      this.items.setAll('body.immovable', true);
+	    }.bind(this));
+	  }
+	};
+
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+	module.exports = function(item,events,spriteNumber){
+	
+	    var guid = events.update(function(main){
+	      var intersects = main.game.physics.arcade.intersects(item, main.refs.player);
+	      if(intersects) itemPickup(main);
+	    });
+	
+	  function itemPickup(main){
+	    console.log('touched item!');
+	    item.kill();
+	    events.disable('update',guid);
+	
+	    setTimeout(function(){
+	      itemRespawn();
+	    },10000);
+	  }
+	
+	  function itemExpiration(){
+	
+	  }
+	
+	  function itemRespawn(){
+	    item.reset(item.x,item.y);
+	    events.enable('update',guid);
+	  }
+	
+	};
+
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+	module.exports = {
 	  begin: function(){
 	
 	  },
-	  render: function(){
+	  render: function(pattern, events){
 	
+	    events.create(function(main){
+	      var loops = (pattern.end - pattern.start) + 1;
+	
+	      for(var i = 0; i < loops; i++){
+	
+	        main.game.add.sprite(
+	          32*(i+pattern.start),
+	          32*pattern.row,
+	          'spritesheet',pattern.num-1);
+	      }
+	    }.bind(this));
 	  },
 	  complete: function(){
 	
@@ -107845,7 +108073,7 @@
 
 
 /***/ },
-/* 15 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -107858,16 +108086,15 @@
 	
 	  function preload(main){
 	    var game = main.game;
-	    game.load.image('player', 'assets/tilesets/person.png');
 	  }
 	
 	  function create(main){
 	
-	    var input = __webpack_require__(16);
+	    var input = __webpack_require__(19);
 	    input.create(main.game);
 	
 	    var game = main.game;
-	    var player = game.add.sprite(100, 200, 'player');
+	    var player = game.add.sprite(100, 200, 'spritesheet',48);
 	
 	    // Physics on player:
 	    game.physics.arcade.enable(player);
@@ -107886,7 +108113,7 @@
 	    player.body.velocity.x = 0;
 	    main.game.physics.arcade.collide(player, platforms);
 	
-	    var input = __webpack_require__(16);
+	    var input = __webpack_require__(19);
 	    input.update(main.game,player);
 	
 	  }
@@ -107894,7 +108121,7 @@
 
 
 /***/ },
-/* 16 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -107907,7 +108134,7 @@
 	  },
 	
 	  create: function(game){
-	    var keyboard = __webpack_require__(17);
+	    var keyboard = __webpack_require__(20);
 	    // if we are using a desktop, I also want to add: controller + touch at some point
 	    this.events = keyboard.initialize(this.events,game);
 	  },
@@ -107926,7 +108153,7 @@
 
 
 /***/ },
-/* 17 */
+/* 20 */
 /***/ function(module, exports) {
 
 	

@@ -8,7 +8,6 @@ module.exports = function(events){
 
   function preload(main){
     var game = main.game;
-    game.load.image('player', 'assets/tilesets/person.png');
   }
 
   function create(main){
@@ -17,7 +16,7 @@ module.exports = function(events){
     input.create(main.game);
 
     var game = main.game;
-    var player = game.add.sprite(100, 200, 'player');
+    var player = game.add.sprite(100, 200, 'spritesheet',48);
 
     // Physics on player:
     game.physics.arcade.enable(player);

@@ -1,24 +1,22 @@
-module.exports = function(main,map){
+module.exports = function(map,events){
 
  (function(){
-      var layerTypes = {
-        'platforms': require('./layers/platforms.js'),
-        'doodads': require('./layers/doodads.js'),
-        'items': require('./layers/items.js')
-      };
 
-      // Now for every layer type we execute the respective function
-      // All types get executed in 3 phases to initialization/finalizing
-      // ...to take place before and after render
+      // This figures out how to render the sprites
+      var renderer = require('./renderer.js');
+
+      // Now for every layer type we execute our render function
       var layers = getMapLayers();
+      renderer.begin(events);
+
       Object.keys(layers).forEach(function(key){
-
-          layerTypes[key].begin(main);
           useArrayPattern(layers[key],function(pattern){
-            layerTypes[key].render(pattern);
-          }); layerTypes[key].complete(main);
-
+            // the key here is passed for the spritesheet name
+            renderer.render(pattern,events);
+          });
       });
+
+      renderer.complete(events);
   })();
 
       // This turns a single long array into sliced rows based on the map width
@@ -44,20 +42,27 @@ module.exports = function(main,map){
     function useArrayPattern(jaggedArray,fn){
       // We will put all non 0 values into an array of objects with their values and locations
       jaggedArray.forEach(function(innerArray,outerIndex){
+        //if(result !== undefined) result.num = 0;
         innerArray.reduce((result,num,index,arr)=>{
           var notLast = index !== innerArray.length-1;
-          if(result.num === num && notLast) return result;
+          if(result.num === num && notLast)
+          {
+            return result;
+          }
           else
           {
-            if(result.num !== 0) fn({
-              row: outerIndex,
-              num: result.num,
-              start: result.start,
-              end: notLast ? index-1 : index
-            });
+            if(result.num !== 0)
+            {
+              fn({
+                row: outerIndex,
+                num: result.num,
+                start: result.start,
+                end: notLast ? index-1 : index
+              });
+            }
             return{ num: num, start: index };
           }
-        },{num: innerArray[0], start: 0 });
+        },{num: 0, start: 0 });
       });
     }
 };

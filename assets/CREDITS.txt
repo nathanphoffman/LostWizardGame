@@ -1,0 +1,16 @@
+sound effects: http://opengameart.org/content/512-sound-effects-8-bit-style
+spritesheet: http://opengameart.org/content/32x32-fantasy-tileset
+
+music
+----------
+battle theme: http://opengameart.org/content/rpg-battle-theme-ii
+main theme 1: end credits theme: http://opengameart.org/content/end-credits-theme
+main theme 2: http://opengameart.org/content/title-x
+death theme/game over (retro): http://opengameart.org/content/game-over-theme
+
+
+website
+----------
+Rotten wood texture: http://opengameart.org/node/27921
+
+

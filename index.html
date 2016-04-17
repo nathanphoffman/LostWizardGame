@@ -3,27 +3,90 @@
 <head>
 	<link href='https://fonts.googleapis.com/css?family=Great+Vibes' rel='stylesheet' type='text/css'>
 	<style>
+
+
+	canvas{
+		border-left: 1px solid #444;
+		border-right: 1px solid #444;
+		border-bottom: 1px solid #444;
+
+		display : block;
+		margin : auto;
+	}
+
+	body {
+ 		margin: 0;
+		background: #eee;
+		text-align: center;
+	}
+
 	h1 {
 	    font-family: 'Great Vibes' !important;
 	    font-style: normal;
 	    font-weight: 400;
-			font-size: 50pt;
+			font-size: 30pt;
 			margin: 2px;
 			padding: 2px;
+			color: #fff;
+			text-align: center;
+			text-shadow: -1px 0 #555, 0 1px #555, 1px 0 #555, 0 -1px #555;
+			display:inline;
 		}
 
-	div.main {
+		header {
+			margin: 0px; padding:0px;
+			/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#3b679e+0,2b88d9+50,207cca+51,7db9e8+100;Blue+Gloss+%232 */
+			background: #3b679e; /* Old browsers */
+			background: -moz-linear-gradient(top,  #3b679e 0%, #2b88d9 50%, #207cca 51%, #7db9e8 100%); /* FF3.6-15 */
+			background: -webkit-linear-gradient(top,  #3b679e 0%,#2b88d9 50%,#207cca 51%,#7db9e8 100%); /* Chrome10-25,Safari5.1-6 */
+			background: linear-gradient(to bottom,  #3b679e 0%,#2b88d9 50%,#207cca 51%,#7db9e8 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+			filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3b679e', endColorstr='#7db9e8',GradientType=0 ); /* IE6-9 */
 
-	}
+			text-align: center;
+	    vertical-align:middle;
+		}
+
+		footer {
+			font-family: Calibri,Candara,Segoe,Segoe UI,Optima,Arial,sans-serif;
+			font-size: 10pt;
+		}
+
+		div.items {
+			border: 1px solid #777;
+			/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#45484d+0,000000+100;Black+3D+%231 */
+			/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#959595+0,0d0d0d+46,010101+50,0a0a0a+53,4e4e4e+76,383838+87,1b1b1b+100;Black+Gloss+Pipe */
+			/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#d8d8d8+0,b7b7b7+100 */
+			background: rgb(216,216,216); /* Old browsers */
+			background: -moz-linear-gradient(top,  rgba(216,216,216,1) 0%, rgba(183,183,183,1) 100%); /* FF3.6-15 */
+			background: -webkit-linear-gradient(top,  rgba(216,216,216,1) 0%,rgba(183,183,183,1) 100%); /* Chrome10-25,Safari5.1-6 */
+			background: linear-gradient(to bottom,  rgba(216,216,216,1) 0%,rgba(183,183,183,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+			filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#d8d8d8', endColorstr='#b7b7b7',GradientType=0 ); /* IE6-9 */
+
+			width: 100%;
+			height: 40px;
+		}
+
+		#phaser{
+
+			width: 700px;
+		}
+
 	</style>
 </head>
 
 <body>
 
-	<div class="main">
-		<h1 class="Great-Vibes-normal-400">Lost Wizard</h2>
-		<div id="phaser"></div>
-	</div>
+
+	<header><img src="assets/images/wizardLogo.png">  <h1 class="Great-Vibes-normal-400">Lost Wizard</h2></header>
+	<div class="items">test</div>
+	<div id="phaser"></div>
+	<footer><hr/>
+		Lost Wizard game/code is available at GitHub under the
+		<a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> license.
+		<br/>Music, sound and images are property of their respective owners.
+		<br/>Please see: <a href="">Credits</a> for a list of original content creators.
+		<br/>Lost Wizard was created by X
+	</footer>
 
 	<script src="./app/js/bundle.js"></script>
 </body>

@@ -13,6 +13,9 @@ module.exports = {
     var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser', {
       preload: function(){
         main.game = game;
+        // this is the only spritesheet we use for the entire game:
+        game.load.spritesheet('spritesheet', 'assets/tilesets/spritesheet.png',32,32);
+
         require('./main/map.js')(events);
         require('./main/player.js')(events);
 
@@ -26,5 +29,7 @@ module.exports = {
         events.runEvent('update',main);
       }
     });
+
+
   }
 };

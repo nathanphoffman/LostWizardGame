@@ -97817,9 +97817,6 @@
 	      }
 	    });
 	
-	    game.scale.pageAlignHorizontally = true;
-	    game.scale.pageAlignVertically = true;
-	    game.scale.refresh();
 	
 	  }
 	};

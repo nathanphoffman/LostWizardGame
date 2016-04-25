@@ -5,7 +5,7 @@ global.p2 = require('p2');
 global.Phaser = require('phaser');
 
 // this starts the background music:
-require('./js/music.js')();
+//require('./js/music.js')();
 
 var game = require('./js/main.js');
 game._initialize();

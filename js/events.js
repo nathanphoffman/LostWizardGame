@@ -8,19 +8,20 @@ module.exports = {
     // and then we pass in the main game object, setting it if there were any changes made to it
     // (if the function returned a new world object)
     if(this.events[event] !== undefined) this.events[event].map(
-      function(obj){ if(obj.enabled) obj.fn(main,obj.guid);});
+      function(obj){ if(obj.enabled) obj.fn(main,obj.guid,obj.event);});
   },
 
-  registerEvent: function(event,fn){
+  registerEvent: function(event,fn,eventObj){
     var guid = this.guid();
     if(this.events[event] === undefined) this.events[event] = [];
-    this.events[event].push({fn:fn, guid:guid, enabled:true});
+    this.events[event].push({fn:fn, guid:guid, enabled:true, event: eventObj});
     return guid;
   },
 
   preload: function(fn){ return this.registerEvent('preload',fn); },
   create: function(fn){ return this.registerEvent('create',fn); },
   update: function(fn){ return this.registerEvent('update',fn); },
+  state: function(fn){ return this.registerEvent('state',fn); },
 
   useEvent: function(event,guid,fn){
     this.events[event].some(function(obj,index){

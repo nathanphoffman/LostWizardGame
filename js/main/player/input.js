@@ -14,13 +14,15 @@ module.exports = {
   },
 
   // although not used yet, we will eventually check the state of inputs here:
-  update: function(game,player){
+  update: function(main,player){
     //console.log(events.jump.pressed);
 
-    if(this.events.isRightDown()) player.body.velocity.x = 300;
-    else if(this.events.isLeftDown()) player.body.velocity.x = -300;
-
-    if(this.events.isJumpDown() && (player.body.onFloor() || player.body.touching.down))
-      player.body.velocity.y = -300;
+    if(this.events.isRightDown()) player.physics.setVelocity(main.state.player.movement.speed);
+    else if(this.events.isLeftDown()) player.physics.setVelocity(-1*main.state.player.movement.speed);
+    
+    if(this.events.isJumpDown() && player.phaser.body.touching.down)
+      {
+        player.physics.setVelocity(null,-1*main.state.player.movement.jump);
+      }
   }
 };

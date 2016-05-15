@@ -34,10 +34,16 @@ module.exports = {
     },
 
     movement: {
-      speed: 100,
-      jump: 100
+      speed: 300,
+      jump: 300,
+      
+      defaults: {
+          speed: 300,
+          jump: 300,
+          speedFast: 600,
+          jumpFast: 600
+      }
     }
-
   },
 
   level: 1

@@ -97751,6 +97751,7 @@
 	    var main = { game: null, state: __webpack_require__(6),
 	      refs: {
 	        map: {},
+	        items: {},
 	        player: {}
 	      },
 	      engine: null
@@ -97766,7 +97767,7 @@
 	        main.engine.loadSpriteSheet('assets/tilesets/spritesheet.png',32,32);
 	
 	        __webpack_require__(9)(events);
-	        __webpack_require__(20)(events);
+	        __webpack_require__(12)(events);
 	
 	        events.runEvent('preload',main);
 	      },
@@ -97826,10 +97827,16 @@
 	    },
 	
 	    movement: {
-	      speed: 100,
-	      jump: 100
+	      speed: 300,
+	      jump: 300,
+	      
+	      defaults: {
+	          speed: 300,
+	          jump: 300,
+	          speedFast: 600,
+	          jumpFast: 600
+	      }
 	    }
-	
 	  },
 	
 	  level: 1
@@ -97913,35 +97920,114 @@
 	// game is the phaser object
 	module.exports = function(game) {
 	
-	  return {
+	  var base = {
 	
 	    loadSpriteSheet: function(img,width,height){
 	      game.load.spritesheet('spritesheet', img, width, height);
 	    },
+	    
+	    // wrapper for phaser physics group
+	    group: function(){
+	       this.members = [];
+	       this.phaser = null;
+	       this.add = function(member){
+	           this.members.push(member);
+	       }
+	       
+	       // this enables physics on the group level
+	       // there are inefficiencies with phaser unless we allow this
+	       this.enablePhysics = function(){
+	           this.phaser = game.add.physicsGroup();
+	           
+	           this.members.forEach(function(member){
+	               this.phaser.add(member.phaser);
+	           }.bind(this));
+	       }
+	       
+	       // get sprite members of the group by an image frame
+	       this.getSpriteMembers = function(frame)
+	       {
+	           var results = [];
+	           this.members.forEach(function(member){
+	               if(member.frame == frame) results.push(member);
+	           });
+	           
+	           return results;
+	       }
+	       
+	       this.makeImmovable = function(){
+	           this.phaser.setAll('body.immovable', true);
+	       }
+	    },
 	
+	    // wrapper for phaser sprite
 	    sprite: function(x,y,frame){
-	
+	      this.frame = frame;
+	      this.x = x;
+	      this.y = y;
 	      this.phaser = game.add.sprite(x, y, 'spritesheet', frame);
-	
-	      this.enableCollision = function(){
-	        game.physics.enable(this.phaser.body);
-	        this.phaser.body.immovable = true;
-	      }
 	
 	      this.hide = function(){
 	        this.phaser.kill();
 	      }
 	
+	      this.reset = function(){
+	          this.phaser.reset(this.phaser.x,this.phaser.y);
+	      }
+	
 	      this.remove = function(){
 	        this.phaser.destroy();
 	      }
-	    },
 	
-	    group: function(){
+	      this.physics = new(function(_this){
+	          
+	        this.sprite = _this.phaser;
+	
+	        this.enable = function(config){
+	          game.physics.enable(this.sprite, Phaser.Physics.ARCADE);
+	          if(config && config.isPlayer)
+	          {
+	            game.camera.follow(this.sprite);
+	            this.sprite.body.collideWorldBounds = true;
+	            this.setGravity(500);
+	          }
+	        }
+	
+	        this.enableCollision = function(){
+	          this.sprite.body.immovable = true;
+	        }
+	
+	        this.setGravity = function(force){
+	          this.sprite.body.gravity.y = force;
+	        }
+	
+	        this.collideWithSprite = function(spriteObj){
+	          game.physics.arcade.collide(this.sprite,spriteObj.phaser);
+	        }
+	        
+	         this.collideWithGroup = function(groupObj){
+	          game.physics.arcade.collide(this.sprite,groupObj.phaser);
+	        }
+	        
+	        this.isTouching = function(spriteObj){
+	            return game.physics.arcade.intersects(this.sprite.body, spriteObj.phaser.body)
+	        }
+	
+	        this.setVelocity = function(x,y)
+	        {
+	          if(x !== undefined && x !== null) this.sprite.body.velocity.x = x;
+	          if(y !== undefined && y !== null) this.sprite.body.velocity.y = y;
+	        }
+	
+	      })(this);
 	
 	    }
 	
+	
+	
 	  };
+	
+	  return base;
 	
 	};
 
@@ -97951,14 +98037,137 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	
+	module.exports = function(events){
+	
+	
+	  events.preload(preload);
+	  events.create(create);
+	  events.update(update);
+	
+	  function preload(main){
+	    var game = main.game;
+	  }
+	
+	  function create(main){
+	
+	    var input = __webpack_require__(10);
+	    input.create(main.game);
+	
+	    var game = main.game;
+	    //var player = game.add.sprite(100, 200, 'spritesheet',48);
+	    var player = new main.engine.sprite(100,200,48);
+	    player.physics.enable({isPlayer: true});
+	    // this is all of our camera logic to follow the player around
+	    main.refs.player = player;
+	  }
+	
+	  function update(main){
+	    var player = main.refs.player;
+	    
+	    // Collision detection must occur first in the update chain
+	    // otherwise it can cause some very weird bugs 
+	    // such as stuck collision inside of tiles
+	    player.physics.collideWithGroup(main.refs.map.platforms);
+	
+	    player.physics.setVelocity(0);
+	
+	    var input = __webpack_require__(10);
+	    input.update(main,player);
+	
+	  }
+	};
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	module.exports = {
+	
+	  events: {
+	    isRightDown: null,
+	    isLeftDown: null,
+	    isJumpDown: null
+	  },
+	
+	  create: function(game){
+	    var keyboard = __webpack_require__(11);
+	    // if we are using a desktop, I also want to add: controller + touch at some point
+	    this.events = keyboard.initialize(this.events,game);
+	  },
+	
+	  // although not used yet, we will eventually check the state of inputs here:
+	  update: function(main,player){
+	    //console.log(events.jump.pressed);
+	
+	    if(this.events.isRightDown()) player.physics.setVelocity(main.state.player.movement.speed);
+	    else if(this.events.isLeftDown()) player.physics.setVelocity(-1*main.state.player.movement.speed);
+	    
+	    if(this.events.isJumpDown() && player.phaser.body.touching.down)
+	      {
+	        player.physics.setVelocity(null,-1*main.state.player.movement.jump);
+	      }
+	  }
+	};
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports) {
+
+	
+	module.exports = {
+	  initialize: function(events,game){
+	
+	    //w, space, up-arrow
+	    var jumpKeys = getKeys([87,32,38]);
+	    events.isJumpDown = function() { return ifKeyDown(jumpKeys); }
+	
+	    // d and right-arrow
+	    var rightKeys = getKeys([68,39]);
+	    events.isRightDown = function() { return ifKeyDown(rightKeys); }
+	    //a and left arrow
+	
+	    var leftKeys = getKeys([65,37]);
+	    events.isLeftDown = function() { return ifKeyDown(leftKeys); }
+	
+	    return events;
+	
+	    function getKeys(keyCodes){
+	      var arr = [];
+	      keyCodes.forEach(function(keyCode){
+	        arr.push(game.input.keyboard.addKey(keyCode));
+	      });
+	      return arr;
+	    }
+	
+	    function ifKeyDown(keys)
+	    {
+	      var pressed = false;
+	      keys.forEach(function(key){
+	        if(key.isDown) pressed = true;
+	      });
+	
+	      return pressed;
+	    }
+	  }
+	};
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
 	
 	module.exports = function(events){
 	
-	  var map = __webpack_require__(10)();
+	  var map = __webpack_require__(13)();
 	  events.create(createWorld);
 	
 	  // This renders all of the sprites and determines what type of logic/physics for each one
-	  __webpack_require__(12)(map,events);
+	  __webpack_require__(15)(map,events);
 	
 	   function createWorld(main){
 	
@@ -97975,14 +98184,14 @@
 
 
 /***/ },
-/* 10 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function(){
 	
 	  var map = null;
 	
-	  var $ = __webpack_require__(11);
+	  var $ = __webpack_require__(14);
 	  $.ajax({ url: "/assets/map.json", async: false})
 	    .done(function( data ) {
 	      map = data;
@@ -97994,7 +98203,7 @@
 
 
 /***/ },
-/* 11 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -107842,7 +108051,7 @@
 
 
 /***/ },
-/* 12 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function(map,events){
@@ -107850,7 +108059,7 @@
 	 (function(){
 	
 	      // This figures out how to render the sprites
-	      var renderer = __webpack_require__(13);
+	      var renderer = __webpack_require__(16);
 	
 	      // Now for every layer type we execute our render function
 	      var layers = getMapLayers();
@@ -107916,25 +108125,25 @@
 
 
 /***/ },
-/* 13 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
 	  layerTypes: [
 	    {
-	      typeObj: __webpack_require__(14),
+	      typeObj: __webpack_require__(17),
 	      start: 1,
 	      end: 16,
 	      type: 'platforms'
 	    },
 	    {
-	      typeObj: __webpack_require__(16),
+	      typeObj: __webpack_require__(19),
 	      start: 17,
 	      end: 40,
 	      type: 'items'
 	    },
 	    {
-	      typeObj: __webpack_require__(19),
+	      typeObj: __webpack_require__(22),
 	      start: 41,
 	      end: 48,
 	      type: 'characters'
@@ -107967,57 +108176,57 @@
 
 
 /***/ },
-/* 14 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	var platformHandler = __webpack_require__(15);
+	var platformHandler = __webpack_require__(18);
 	
 	module.exports = {
 	
 	  platforms: null,
 	
 	  begin: function(events){
-	    /*
-	    events.create(function(main){
-	      this.platforms = main.game.add.physicsGroup();
+	    
+	    events.preload(function(main){
+	      this.platforms = new main.engine.group();
 	    }.bind(this));
-	    */
+	   
 	  },
-	
 	
 	  render: function(pattern,events){
 	    events.create(function(main){
+	       
 	      var loops = (pattern.end - pattern.start) + 1;
 	
 	      for(var i = 0; i < loops; i++){
 	
-	        this.platforms = new main.engine.sprite(
+	
+	        var platform = new main.engine.sprite(
 	          32*(i+pattern.start),
 	          32*pattern.row,
 	          pattern.num-1);
-	
-	          this.platforms.enableCollision();
-	
-	          platformHandler(this.platforms, pattern.num);
-	
+	          
+	        this.platforms.add(platform);
+	        
 	      }
 	    }.bind(this));
 	  },
 	
 	  complete: function(events){
-	    /*
+	        
 	    events.create(function(main){
-	      this.platforms.setAll('body.immovable', true);
+	      this.platforms.enablePhysics();
+	      this.platforms.makeImmovable();
 	      main.refs.map.platforms = this.platforms;
 	    }.bind(this));
-	    */
+	    
 	  }
 	};
 
 
 /***/ },
-/* 15 */
+/* 18 */
 /***/ function(module, exports) {
 
 	
@@ -108036,7 +108245,7 @@
 
 
 /***/ },
-/* 16 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = {
@@ -108044,9 +108253,11 @@
 	  items: null,
 	
 	  begin: function(events){
-	    events.create(function(main){
-	      this.items = main.game.add.physicsGroup();
+	    
+	    events.preload(function(main){
+	      this.items = new main.engine.group();
 	    }.bind(this));
+	   
 	  },
 	
 	  render: function(pattern,events){
@@ -108054,56 +108265,60 @@
 	      var loops = (pattern.end - pattern.start) + 1;
 	
 	      for(var i = 0; i < loops; i++){
-	        var item = this.items.create(
+	        var item = new main.engine.sprite(
 	          32*(i+pattern.start),
 	          32*pattern.row,
-	          'spritesheet',pattern.num-1);
+	          pattern.num-1);
 	
+	          item.physics.enable();
+	          item.physics.enableCollision();
+	
+	          this.items.add(item);
 	          // setup item logic for this item
-	          __webpack_require__(17)(item,events,pattern.num);
+	          __webpack_require__(20)(item,events,pattern.num);
 	      }
 	
 	    }.bind(this));
 	  },
-	
+	  
 	  complete: function(events){
 	    events.create(function(main){
-	      this.items.setAll('body.immovable', true);
+	      main.refs.map.items = this.items;
 	    }.bind(this));
 	  }
+	  
 	};
 
 
 /***/ },
-/* 17 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = function(item,events,spriteNumber){
 	
 	  var state = __webpack_require__(6);
-	  var itemDefinition = __webpack_require__(18)[spriteNumber];
+	  var itemDefinition = __webpack_require__(21)[spriteNumber];
 	
 	    var guid = events.update(function(main){
-	      var intersects = main.game.physics.arcade.intersects(item, main.refs.player);
-	      if(intersects) itemPickup(main);
+	      if(item.physics.isTouching(main.refs.player)) itemPickup(main);
 	    });
 	
 	  function itemPickup(main){
-	    item.kill();
+	    item.hide();
 	    events.disable('update',guid); // no reason to run any intersect logic since we are killing the sprite
 	
 	    state.player.addItem(spriteNumber);
-	    itemDefinition.onPickup && itemDefinition.onPickup();
+	    itemDefinition.onPickup && itemDefinition.onPickup(main);
 	
 	    setTimeout(function(){
-	      itemRespawn();
+	      itemRespawn(main);
 	    },itemDefinition.respawn || 5000);
 	  }
 	
-	  function itemRespawn(){
+	  function itemRespawn(main){
 	    state.player.removeItem(spriteNumber);
-	    itemDefinition.onRespawn && itemDefinition.onRespawn();
-	    item.reset(item.x,item.y);
+	    itemDefinition.onRespawn && itemDefinition.onRespawn(main);
+	    item.reset();
 	    events.enable('update',guid);
 	  }
 	
@@ -108111,7 +108326,7 @@
 
 
 /***/ },
-/* 18 */
+/* 21 */
 /***/ function(module, exports) {
 
 	/*
@@ -108126,32 +108341,54 @@
 	
 	module.exports = {
 	
-	  // speed, track suit
-	  19: {
-	
-	  },
-	
-	  // lil hoppy, - jump
-	  20: {
-	
-	  },
-	
-	  // blue key
-	  37: {
-	    respawn: 10000,
-	    onPickup: function(){
-	
+	    // speed, track suit
+	    19: {
+	        respawn: 10000,
+	        onPickup: function(main) {
+	            main.state.player.movement.speed =
+	                main.state.player.movement.defaults.speedFast;
+	        },
+	        onRespawn: function(main) {
+	            main.state.player.movement.speed =
+	                main.state.player.movement.defaults.speed;
+	        }
 	    },
-	    onRespawn: function(){
-	      console.log('respawn');
+	
+	    // lil hoppy, - jump
+	    20: {
+	        respawn: 10000,
+	        onPickup: function(main) {
+	            main.state.player.movement.jump =
+	                main.state.player.movement.defaults.jumpFast;
+	        },
+	        onRespawn: function(main) {
+	            main.state.player.movement.jump =
+	                main.state.player.movement.defaults.jump;
+	        }
+	    },
+	
+	    // blue key
+	    37: {
+	        doors: null,
+	        respawn: 10000,
+	        onPickup: function(main) {
+	            this.doors = main.refs.map.platforms.getSpriteMembers(4);
+	            this.doors.forEach(function(door) {
+	                door.hide();
+	            });
+	        },
+	        onRespawn: function(main) {
+	            this.doors.forEach(function(door) {
+	                door.reset();
+	            });
+	        }
 	    }
-	  }
 	
 	};
 
 
 /***/ },
-/* 19 */
+/* 22 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -108174,129 +108411,6 @@
 	  },
 	  complete: function(){
 	
-	  }
-	};
-
-
-/***/ },
-/* 20 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports = function(events){
-	
-	
-	  events.preload(preload);
-	  events.create(create);
-	  events.update(update);
-	
-	  function preload(main){
-	    var game = main.game;
-	  }
-	
-	  function create(main){
-	
-	    var input = __webpack_require__(21);
-	    input.create(main.game);
-	
-	    var game = main.game;
-	    var player = game.add.sprite(100, 200, 'spritesheet',48);
-	
-	    // Physics on player:
-	    game.physics.arcade.enable(player);
-	    player.body.collideWorldBounds = true;
-	    player.body.gravity.y = 500;
-	
-	    // this is all of our camera logic to follow the player around
-	    game.camera.follow(player);
-	    main.refs.player = player;
-	  }
-	
-	  function update(main){
-	    var player = main.refs.player;
-	    var platforms = main.refs.map.platforms;
-	
-	    player.body.velocity.x = 0;
-	    main.game.physics.arcade.collide(player, platforms);
-	
-	    var input = __webpack_require__(21);
-	    input.update(main.game,player);
-	
-	  }
-	};
-
-
-/***/ },
-/* 21 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports = {
-	
-	  events: {
-	    isRightDown: null,
-	    isLeftDown: null,
-	    isJumpDown: null
-	  },
-	
-	  create: function(game){
-	    var keyboard = __webpack_require__(22);
-	    // if we are using a desktop, I also want to add: controller + touch at some point
-	    this.events = keyboard.initialize(this.events,game);
-	  },
-	
-	  // although not used yet, we will eventually check the state of inputs here:
-	  update: function(game,player){
-	    //console.log(events.jump.pressed);
-	
-	    if(this.events.isRightDown()) player.body.velocity.x = 300;
-	    else if(this.events.isLeftDown()) player.body.velocity.x = -300;
-	
-	    if(this.events.isJumpDown() && (player.body.onFloor() || player.body.touching.down))
-	      player.body.velocity.y = -300;
-	  }
-	};
-
-
-/***/ },
-/* 22 */
-/***/ function(module, exports) {
-
-	
-	module.exports = {
-	  initialize: function(events,game){
-	
-	    //w, space, up-arrow
-	    var jumpKeys = getKeys([87,32,38]);
-	    events.isJumpDown = function() { return ifKeyDown(jumpKeys); }
-	
-	    // d and right-arrow
-	    var rightKeys = getKeys([68,39]);
-	    events.isRightDown = function() { return ifKeyDown(rightKeys); }
-	    //a and left arrow
-	
-	    var leftKeys = getKeys([65,37]);
-	    events.isLeftDown = function() { return ifKeyDown(leftKeys); }
-	
-	    return events;
-	
-	    function getKeys(keyCodes){
-	      var arr = [];
-	      keyCodes.forEach(function(keyCode){
-	        arr.push(game.input.keyboard.addKey(keyCode));
-	      });
-	      return arr;
-	    }
-	
-	    function ifKeyDown(keys)
-	    {
-	      var pressed = false;
-	      keys.forEach(function(key){
-	        if(key.isDown) pressed = true;
-	      });
-	
-	      return pressed;
-	    }
 	  }
 	};
 

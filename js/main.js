@@ -5,6 +5,7 @@ module.exports = {
     var main = { game: null, state: require('./state.js'),
       refs: {
         map: {},
+        items: {},
         player: {}
       },
       engine: null
@@ -19,8 +20,8 @@ module.exports = {
         // this is the only spritesheet we use for the entire game:
         main.engine.loadSpriteSheet('assets/tilesets/spritesheet.png',32,32);
 
-        require('./main/map.js')(events);
         require('./main/player.js')(events);
+        require('./main/map.js')(events);
 
         events.runEvent('preload',main);
       },

@@ -18,7 +18,7 @@ module.exports = {
         main.engine = require('./engine.js')(game);
         main.game = game;
         // this is the only spritesheet we use for the entire game:
-        main.engine.loadSpriteSheet('assets/tilesets/spritesheet.png',32,32);
+        main.engine.loadSpriteSheet('./assets/tilesets/spritesheet.png',32,32);
 
         require('./main/player.js')(events);
         require('./main/map.js')(events);

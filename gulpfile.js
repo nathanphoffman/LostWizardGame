@@ -1,7 +1,7 @@
 var gulp = require('gulp');
 var gutil = require("gulp-util");
 var webpack = require("webpack");
-var webserver = require('gulp-webserver');
+var connect = require('gulp-connect');
 var path = require('path');
 
 function getConfig(isProd)
@@ -20,16 +20,16 @@ function getConfig(isProd)
 gulp.task("build", function (callback) {
   var config = getConfig(true);
   //moveVendorAssets();
-  runWebpack(config);
+  runWebpack(config,callback);
 });
 
 gulp.task("build-dev", function (callback) {
   var config = getConfig(false);
   //moveVendorAssets();
-  runWebpack(config);
+  runWebpack(config,callback);
 });
 
-function runWebpack(config)
+function runWebpack(config,callback)
 {
   var webpackConfig = require(config.webpack);
   webpack(webpackConfig, function (err, stats) {
@@ -37,7 +37,7 @@ function runWebpack(config)
     gutil.log("[webpack]", stats.toString({
       // output options
     }));
-    //callback();
+    callback();
   });
 }
 /*
@@ -53,11 +53,8 @@ gulp.task('watch', function() {
 */
 // used to host a server
 gulp.task('webserver', function () {
-  gulp.src('./')
-    .pipe(webserver({
-      //fallback: 'index.html',
-      livereload: false,
-      directoryListing: true,
-      open: true
-    }));
+  connect.server({
+    root:'.'
+  });
 });
+

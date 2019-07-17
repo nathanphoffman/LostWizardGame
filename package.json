@@ -9,13 +9,13 @@
   "author": "Nate,Steve,John",
   "license": "ISC",
   "devDependencies": {
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.2",
+    "gulp-connect": "^5.7.0",
     "gulp-util": "^3.0.7",
-    "gulp-webserver": "^0.9.1",
     "phaser": "^2.4.6",
-    "webpack": "^1.12.14"
+    "webpack": "^4.35.3"
   },
   "dependencies": {
-    "jquery": "^2.2.2"
+    "jquery": "^3.4.1"
   }
 }
